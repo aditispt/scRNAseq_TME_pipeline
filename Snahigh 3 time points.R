@@ -165,26 +165,88 @@ DotPlot(
   RotatedAxis()
 
 Idents(sna_timecourse) <- "seurat_clusters"
+
 ##Rename clusters
 new_cluster_ids <- c(
-  "0" = "B_cells_1",
-  "1" = "Macrophage_1",
-  "2" = "NK_cells",
-  "3" = "Macrophage_2",
-  "4" = "Fibroblasts",
-  "5" = "T_cells_1",
-  "6" = "B_cells_2",
-  "7" = "B_cells_3",
-  "8" = "DC_1",
-  "9" = "Stromal_cells",
-  "10" = "Epithelial",
-  "11" = "MDSC",
-  "12" = "DC_2",
-  "13" = "B_cells_4",
-  "14" = "DC_3",
-  "15" = "T_cells_2"
+  "0"  = "B_cells_1",
+  "1"  = "Macrophage_1",
+  "2"  = "B_cells_2",
+  "3"  = "T_cells_1",
+  "4"  = "MDSC",
+  "5"  = "NK_cells_1",
+  "6"  = "B_cells_3",
+  "7"  = "DC_1",
+  "8"  = "T_cells_2",
+  "9"  = "Macrophage_2",
+  "10" = "Epithelial_1",
+  "11" = "NK_cells_2",
+  "12" = "Fibroblasts",
+  "13" = "Pancreatic",
+  "14" = "Plasma_cells",
+  "15" = "Macrophage_3",
+  "16" = "DC_2",
+  "17" = "Endothelial"
 )
 
 sna_timecourse <- RenameIdents(sna_timecourse, new_cluster_ids)
 DimPlot(sna_timecourse, label = TRUE, repel = TRUE)
 DimPlot(sna_timecourse, label = TRUE, split.by = "timepoint")
+
+##Find the frequency distribution table
+table(Idents(sna_timecourse), sna_timecourse$timepoint)
+
+prop.table(
+  table(Idents(sna_timecourse), sna_timecourse$timepoint),
+  margin = 2
+)
+
+freq <- prop.table(
+  table(Idents(sna_timecourse), sna_timecourse$timepoint),
+  margin = 2
+)
+
+freq_df <- as.data.frame(freq)
+
+colnames(freq_df) <- c("celltype", "timepoint", "frequency")
+library(ggplot2)
+
+ggplot(freq_df, aes(x = timepoint, y = frequency, fill = celltype)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  ylab("Cell proportion") +
+  xlab("Timepoint")
+
+##Condense to reduce colors
+sna_timecourse$lineage <- case_when(
+  Idents(sna_timecourse) %in% c("B_cells_1","B_cells_2","B_cells_3") ~ "B_cells",
+  Idents(sna_timecourse) %in% c("T_cells_1","T_cells_2") ~ "T_cells",
+  Idents(sna_timecourse) %in% c("NK_cells_1","NK_cells_2") ~ "NK_cells",
+  Idents(sna_timecourse) %in% c("Macrophage_1","Macrophage_2","Macrophage_3") ~ "Macrophages",
+  Idents(sna_timecourse) %in% c("DC_1","DC_2") ~ "DCs",
+  Idents(sna_timecourse) %in% c("Fibroblasts","Stromal_cells") ~ "Fibroblasts",
+  Idents(sna_timecourse) == "Epithelial_1" ~ "Epithelial",
+  Idents(sna_timecourse) == "Endothelial" ~ "Endothelial",
+  Idents(sna_timecourse) == "MDSC" ~ "MDSC",
+  TRUE ~ "Other"
+)
+
+freq <- prop.table(
+  table(sna_timecourse$lineage, sna_timecourse$timepoint),
+  margin = 2
+)
+
+freq_df <- as.data.frame(freq)
+colnames(freq_df) <- c("celltype","timepoint","frequency")
+
+ggplot(freq_df, aes(x = timepoint, y = frequency, fill = celltype)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  ylab("Cell proportion") +
+  xlab("Timepoint")
+
+
+# Install (only once)
+devtools::install_github("digitalcytometry/cytotrace2")
+
+# Load
+library(cytotrace2)
